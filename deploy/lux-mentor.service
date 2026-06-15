@@ -1,0 +1,27 @@
+[Unit]
+# Lux Leti AI Matematika Mentori — Telegram bot (systemd service)
+Description=Lux Leti AI Matematika Mentori (Telegram bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 'ubuntu' — Oracle Cloud Ubuntu image'ining standart foydalanuvchisi.
+# Agar boshqa foydalanuvchi bo'lsa, User va yo'llarni moslang.
+User=ubuntu
+WorkingDirectory=/home/ubuntu/lux-leti-ai-mentor
+
+# venv ichidagi python bilan main.py ni ishga tushiramiz.
+ExecStart=/home/ubuntu/lux-leti-ai-mentor/.venv/bin/python main.py
+
+# Xato yoki uzilishda avtomatik qayta ishga tushadi.
+Restart=always
+RestartSec=5
+
+# Loglar journald ga tushadi (journalctl bilan ko'riladi).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lux-mentor
+
+[Install]
+WantedBy=multi-user.target
