@@ -85,8 +85,8 @@ Agar loyihani GitHub/GitLab'ga (private repo) qo'ygan bo'lsangiz:
 
 ```bash
 cd ~
-git clone https://github.com/SIZNING-USERNAME/lux-leti-ai-mentor.git
-cd lux-leti-ai-mentor
+git clone https://github.com/nurmuhammad-sharobiddinov/leti-ai-mentor.git
+cd leti-ai-mentor
 ```
 
 **Variant B — To'g'ridan-to'g'ri nusxalash (git yo'q bo'lsa).**

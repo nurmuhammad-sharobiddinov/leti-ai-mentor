@@ -9,10 +9,10 @@ Type=simple
 # 'ubuntu' — Oracle Cloud Ubuntu image'ining standart foydalanuvchisi.
 # Agar boshqa foydalanuvchi bo'lsa, User va yo'llarni moslang.
 User=ubuntu
-WorkingDirectory=/home/ubuntu/lux-leti-ai-mentor
+WorkingDirectory=/home/ubuntu/leti-ai-mentor
 
 # venv ichidagi python bilan main.py ni ishga tushiramiz.
-ExecStart=/home/ubuntu/lux-leti-ai-mentor/.venv/bin/python main.py
+ExecStart=/home/ubuntu/leti-ai-mentor/.venv/bin/python main.py
 
 # Xato yoki uzilishda avtomatik qayta ishga tushadi.
 Restart=always
