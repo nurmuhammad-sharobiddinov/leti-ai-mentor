@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.git/
+.gitignore
+tests/
+src/
+deploy/
+*.md
+.env
+.env.example
+main.py
+pyproject.toml

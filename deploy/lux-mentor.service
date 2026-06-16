@@ -1,27 +1,24 @@
 [Unit]
-# Lux Leti AI Matematika Mentori — Telegram bot (systemd service)
-Description=Lux Leti AI Matematika Mentori (Telegram bot)
+# LETI Matematika Mentori — Telegram bot (systemd).
+# DIQQAT: tavsiya etilgan yo'l — Docker Compose (deploy/DEPLOY_ORACLE_CLOUD.md).
+# Bu service Docker'siz, to'g'ridan-to'g'ri venv bilan ishlatmoqchi bo'lganlar uchun
+# muqobil. Bu holatda Redis alohida o'rnatilishi kerak (yoki REDIS_URL bo'sh = RAM fallback).
+Description=LETI Matematika Mentori (Telegram bot)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-# 'ubuntu' — Oracle Cloud Ubuntu image'ining standart foydalanuvchisi.
-# Agar boshqa foydalanuvchi bo'lsa, User va yo'llarni moslang.
 User=ubuntu
 WorkingDirectory=/home/ubuntu/leti-ai-mentor
+ExecStart=/home/ubuntu/leti-ai-mentor/.venv/bin/python run_mentor.py
 
-# venv ichidagi python bilan main.py ni ishga tushiramiz.
-ExecStart=/home/ubuntu/leti-ai-mentor/.venv/bin/python main.py
-
-# Xato yoki uzilishda avtomatik qayta ishga tushadi.
 Restart=always
 RestartSec=5
 
-# Loglar journald ga tushadi (journalctl bilan ko'riladi).
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=lux-mentor
+SyslogIdentifier=leti-mentor
 
 [Install]
 WantedBy=multi-user.target

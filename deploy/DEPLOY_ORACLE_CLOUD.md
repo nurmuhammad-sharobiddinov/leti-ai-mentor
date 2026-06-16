@@ -1,209 +1,146 @@
-# 🚀 Lux Leti AI Mentorini TEKINGA deploy qilish — Oracle Cloud (Always Free)
+# 🚀 LETI Matematika Mentorini TEKINGA deploy qilish — Oracle Cloud (Always Free) + Docker
 
-Bu yo'riqnoma botni Oracle Cloud'ning **abadiy tekin** (Always Free) Linux
-serverida 24/7 ishlatib turishni o'rgatadi. Bot **polling** rejimida ishlaydi,
-shuning uchun domen/HTTPS shart EMAS. Ma'lumotlar bazasi — allaqachon Supabase'da.
+Bu yo'riqnoma botni (yangi `leti_math_mentor` paketi) Oracle Cloud'ning **abadiy tekin**
+serverida **Docker** orqali 24/7 ishlatishni o'rgatadi. Bot **polling** rejimida —
+domen/HTTPS shart EMAS. Baza allaqachon **Supabase**'da. Docker Compose botni va
+**Redis**ni (suhbat konteksti + mashq holati saqlanishi uchun) birga ishga tushiradi.
 
-> ⚠️ Eng muhim qoida: bir vaqtning o'zida bot FAQAT BITTA joyda ishlasin.
-> Server ishga tushgach, kompyuteringizdagi `py main.py` ni TO'XTATING
-> (aks holda Telegram 409 "Conflict" xatosi beradi).
+> ⚠️ Eng muhim qoida: bot bir vaqtda FAQAT BITTA joyda ishlasin. Server ishga tushgach,
+> kompyuteringizdagi `run_mentor.py` ni TO'XTATING (aks holda Telegram `409 Conflict`).
 
 ---
 
-## 0. Nima kerak (oldindan)
-- Bank kartasi (faqat shaxsni tasdiqlash uchun — pul YECHILMAYDI, Always Free
-  resurslari uchun to'lov yo'q).
-- `.env` faylingizdagi qiymatlar: `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`,
-  `DATABASE_URL`, `ADMIN_IDS`.
-- SSH bilan ishlash (Windows'da PowerShell yoki PuTTY).
+## 0. Nima kerak
+- Bank kartasi (faqat shaxsni tasdiqlash — Always Free uchun pul yechilmaydi; ~$1 vaqtincha bloklanib qaytadi).
+- `.env` qiymatlari: `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`, `DATABASE_URL`.
+- SSH (Windows PowerShell yetadi).
 
 ---
 
 ## 1-qadam. Oracle Cloud hisobini ochish
-1. https://www.oracle.com/cloud/free/ ga kiring → **Start for free**.
-2. Email, mamlakat (Uzbekistan), telefon raqamni kiriting va tasdiqlang.
-3. Kartani kiriting (tasdiq uchun ~$1 bloklanib, qaytariladi).
-4. Hisob tayyor bo'lgach, **Oracle Cloud Console** ga kiring.
-
-💡 Maslahat: **Home Region** ni o'zingizga yaqin tanlang (masalan
-*Singapore* yoki *South Korea — Seoul*). Supabase pooler ham `ap-northeast-2`
-(Seoul) da — yaqin region kechikishni kamaytiradi.
+1. https://www.oracle.com/cloud/free/ → **Start for free**.
+2. Email, mamlakat (Uzbekistan), telefon — tasdiqlang.
+3. Kartani kiriting (~$1 bloklanib qaytadi).
+4. **Home Region** ni yaqin tanlang (masalan *Singapore* yoki *Seoul*) — Supabase pooler ham Osiyoda.
+5. Console'ga kiring.
 
 ---
 
 ## 2-qadam. Tekin serverni (VM) yaratish
-1. Console'da: **Menu → Compute → Instances → Create Instance**.
-2. **Name:** `lux-mentor`.
+1. **Menu → Compute → Instances → Create Instance**.
+2. **Name:** `leti-mentor`.
 3. **Image and shape → Edit:**
    - **Image:** `Canonical Ubuntu 24.04`.
-   - **Shape:** `Ampere` bo'limidan **VM.Standard.A1.Flex** (ARM, "Always Free
-     eligible" yozuvi bo'lishi kerak). Masalan **1 OCPU + 6 GB RAM** — bot uchun
-     ortig'i bilan yetadi va tekin.
-     - 💡 Agar "Out of capacity" chiqsa: bir-ikki marta qayta urinib ko'ring yoki
-       boshqa Availability Domain (AD-1/AD-2/AD-3) tanlang. ARM tekin shakl
-       ba'zan band bo'ladi.
-4. **Add SSH keys:**
-   - **Generate a key pair for me** ni tanlab, **ikkala kalitni ham yuklab oling**
-     (private va public). Private kalitni (`.key`) yo'qotmang!
-   - (yoki o'zingizdagi mavjud public kalitni qo'ying).
-5. **Create** bosing. 1-2 daqiqada server **Running** bo'ladi.
-6. Instance sahifasidan **Public IP address** ni nusxalang (masalan `140.x.x.x`).
+   - **Shape:** `Ampere` → **VM.Standard.A1.Flex** (ARM, "Always Free eligible"). **1 OCPU + 6 GB RAM** yetib ortadi.
+   - 💡 "Out of capacity" chiqsa: boshqa Availability Domain (AD-1/2/3) tanlang yoki keyin urinib ko'ring.
+4. **Add SSH keys → Generate a key pair for me** → **ikkala kalitni yuklab oling** (private `.key` ni yo'qotmang!).
+5. **Create** → 1-2 daqiqada **Running**.
+6. **Public IP** ni nusxalang (masalan `140.x.x.x`).
 
 ---
 
-## 3-qadam. Serverga SSH bilan ulanish
-Windows PowerShell'da (yuklab olingan private kalit yo'lini qo'ying):
+## 3-qadam. SSH bilan ulanish
+Windows PowerShell'da (kalit yo'lini o'zingiznikiga almashtiring):
 
 ```powershell
-# Kalit fayliga ruxsatni to'g'rilash (bir marta)
 icacls "C:\Users\user\Downloads\ssh-key-xxxx.key" /inheritance:r
 icacls "C:\Users\user\Downloads\ssh-key-xxxx.key" /grant:r "$($env:USERNAME):(R)"
-
-# Ulanish (IP ni o'zingiznikiga almashtiring)
 ssh -i "C:\Users\user\Downloads\ssh-key-xxxx.key" ubuntu@140.x.x.x
 ```
 
-Birinchi ulanishda "yes" deb tasdiqlang. Endi siz serverdasiz.
+Birinchi ulanishda `yes`. Endi serverdasiz.
 
 ---
 
-## 4-qadam. Serverni tayyorlash (Python, git)
-Server ichida (Ubuntu) quyidagini bajaring:
-
+## 4-qadam. Docker'ni o'rnatish (serverda, bir marta)
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-venv python3-pip git
-python3 --version   # 3.12.x bo'lishi kerak — bizning botga mos
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker ubuntu        # docker'ni sudosiz ishlatish uchun
 ```
+> ⚠️ `usermod` dan keyin SSH'dan **chiqib qayta kiring** (`exit`, so'ng yana `ssh ...`) —
+> guruh o'zgarishi shundan keyin kuchga kiradi. Tekshirish: `docker run hello-world`.
 
 ---
 
-## 5-qadam. Kodni serverga ko'chirish
-
-**Variant A — Git orqali (tavsiya etiladi, keyin yangilash oson).**
-Agar loyihani GitHub/GitLab'ga (private repo) qo'ygan bo'lsangiz:
+## 5-qadam. Kodni serverga olish (Git orqali)
+Yangi kod GitHub'da: **github.com/nurmuhammad-sharobiddinov/leti-ai-mentor**.
 
 ```bash
 cd ~
 git clone https://github.com/nurmuhammad-sharobiddinov/leti-ai-mentor.git
 cd leti-ai-mentor
 ```
-
-**Variant B — To'g'ridan-to'g'ri nusxalash (git yo'q bo'lsa).**
-Kompyuteringizdagi PowerShell'da (server ichida EMAS), `.venv` va `.env` siz
-butun papkani yuklang. `scp` faqat kerakli narsalarni ko'chiramiz:
-
-```powershell
-# Loyiha papkasidan, .venv'siz arxiv qilib yuborgan qulay.
-# Eng oddiy: papkani to'liq scp bilan (lekin .venv'ni qo'lda o'chiring — katta).
-scp -i "C:\...\ssh-key-xxxx.key" -r `
-  "D:\LUMEN\Coding\AI-Mentor-n8n\lux-leti-ai-mentor" `
-  ubuntu@140.x.x.x:/home/ubuntu/
-```
-> ⚠️ Yuborishdan oldin kompyuterda `.venv` papkasini vaqtincha boshqa joyga
-> ko'chiring yoki o'chiring (u juda katta va serverda kerak emas — serverda
-> yangidan yaratamiz).
+> Keyin yangilash: `git pull && docker compose up -d --build`.
 
 ---
 
-## 6-qadam. Virtual muhit va kutubxonalar
-Server ichida:
+## 6-qadam. `.env` faylini serverda yaratish
+`.env` maxfiy — repoda yo'q, qo'lda yozamiz:
 
 ```bash
-cd ~/lux-leti-ai-mentor
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+nano ~/leti-ai-mentor/.env
 ```
 
----
-
-## 7-qadam. `.env` faylini serverda yaratish
-`.env` maxfiy, shuning uchun uni serverda qo'lda yozamiz:
-
-```bash
-nano ~/lux-leti-ai-mentor/.env
-```
-
-Ichiga (o'zingizdagi qiymatlar bilan) yozing:
+Ichiga (o'zingizdagi qiymatlar bilan):
 
 ```
-TELEGRAM_BOT_TOKEN=8xxxx:AAxxxx
-ANTHROPIC_API_KEY=sk-ant-xxxx
-DATABASE_URL=postgresql://postgres.xxxx:PAROL@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres
-ADMIN_IDS=123456789
+TELEGRAM_BOT_TOKEN=5225570156:AA...
+ANTHROPIC_API_KEY=sk-ant-...
+DATABASE_URL=postgresql://postgres.xxxx:PAROL@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres
 
-# Polling rejimi (default) — domen kerak emas
-BOT_MODE=polling
-AUTO_MIGRATE=true
-REVIEW_ENABLED=true
+# Modellar (ixtiyoriy)
+MODEL=claude-sonnet-4-6
+HARD_MODEL=claude-opus-4-8
+
+# REDIS_URL ni BU YERGA YOZMANG — docker-compose o'zi redis konteyneriga ulaydi.
+RATE_LIMIT_PER_MIN=15
 ```
 
 Saqlash: `Ctrl+O` → `Enter` → `Ctrl+X`.
 
-> ℹ️ Supabase pooler (port **6543**) uchun kod ichida `statement_cache_size=0`
-> allaqachon sozlangan — qo'shimcha narsa shart emas.
-
-### Qo'lda bir marta sinab ko'rish (ixtiyoriy lekin tavsiya):
-```bash
-cd ~/lux-leti-ai-mentor
-source .venv/bin/activate
-python main.py
-```
-Telegram'da botga `/start` yozing — javob bersa, ishlayapti. `Ctrl+C` bilan
-to'xtating va keyingi qadamga o'ting (doimiy service qilish uchun).
+> ℹ️ Supabase pooler (port **6543**) uchun `statement_cache_size=0` kod ichida bor — qo'shimcha sozlash shart emas.
+> Jadvallar (`bot_users`, `interactions`) bot birinchi ishga tushganda avtomatik yaratiladi.
 
 ---
 
-## 8-qadam. systemd service — botni 24/7 ishlatish
-Tayyor service fayli loyihada bor: `deploy/lux-mentor.service`. Uni o'rnatamiz:
-
+## 7-qadam. Ishga tushirish (Docker Compose)
 ```bash
-sudo cp ~/lux-leti-ai-mentor/deploy/lux-mentor.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable lux-mentor      # server qayta yuklansa ham avtomatik ishga tushadi
-sudo systemctl start lux-mentor       # hozir ishga tushiramiz
-sudo systemctl status lux-mentor      # holatini ko'rish (active/running bo'lishi kerak)
+cd ~/leti-ai-mentor
+docker compose up -d --build
 ```
 
-> Agar foydalanuvchi nomi `ubuntu` emas yoki papka boshqa joyda bo'lsa,
-> service faylidagi `User=` va yo'llarni mos ravishda tahrirlang.
+Bu bot + redis konteynerlarini quradi va fon rejimida ishga tushiradi.
+`restart: unless-stopped` — server qayta yuklansa yoki bot yiqilsa avtomatik tiklanadi.
+
+Tekshirish:
+```bash
+docker compose ps              # ikkala konteyner "Up" bo'lishi kerak
+docker compose logs -f bot     # jonli log — "Run polling for bot @Gcvljyhbot" ko'rinsin
+```
+
+Telegram'da botga `/start` yozing — javob bersa, tayyor! ✅
+(Kompyuteringizdagi mahalliy nusxani to'xtatishni unutmang.)
 
 ---
 
-## 9-qadam. Loglarni ko'rish va boshqarish
+## 8-qadam. Boshqaruv
 ```bash
-# Jonli loglar (real vaqtda)
-journalctl -u lux-mentor -f
-
-# Oxirgi 100 qator
-journalctl -u lux-mentor -n 100 --no-pager
-
-# Boshqaruv
-sudo systemctl restart lux-mentor   # qayta ishga tushirish
-sudo systemctl stop lux-mentor      # to'xtatish
-sudo systemctl start lux-mentor     # yoqish
+docker compose logs -f bot         # jonli loglar (Ctrl+C chiqish)
+docker compose restart bot         # botni qayta ishga tushirish
+docker compose down                # hammasini to'xtatish
+docker compose up -d               # qayta yoqish
+docker compose up -d --build       # kod o'zgargandan keyin qayta qurish
 ```
-
-✅ Tayyor! Bot endi serverda doimiy ishlaydi. Kompyuteringizni o'chirsangiz ham,
-server uzilsa ham (Restart=always) bot ishlayveradi.
 
 ---
 
-## 🔄 Kodni yangilash (keyinroq o'zgartirish kiritsangiz)
-
-**Git ishlatgan bo'lsangiz:**
+## 🔄 Kodni yangilash
 ```bash
-cd ~/lux-leti-ai-mentor
+cd ~/leti-ai-mentor
 git pull
-source .venv/bin/activate
-pip install -r requirements.txt   # yangi kutubxona qo'shilgan bo'lsa
-sudo systemctl restart lux-mentor
+docker compose up -d --build       # faqat o'zgargan qatlamlar qayta quriladi
 ```
-
-**Git ishlatmagan bo'lsangiz:** o'zgargan fayllarni qaytadan `scp` qiling, so'ng
-`sudo systemctl restart lux-mentor`.
 
 ---
 
@@ -211,17 +148,16 @@ sudo systemctl restart lux-mentor
 
 | Belgi | Sabab | Yechim |
 |------|-------|--------|
-| Telegram `409 Conflict` | Bot 2 joyda ishlayapti | Kompyuterdagi `py main.py` ni to'xtating |
-| `status` da `failed` | `.env` to'liq emas / DB ulanmadi | `journalctl -u lux-mentor -n 50` ga qarang |
-| DB `statement cache` xatosi | Pooler port 6543 | `DATABASE_URL` to'g'ri pooler manzilini ishlatayotganini tekshiring |
-| ARM "Out of capacity" | Tekin shakl band | Boshqa AD tanlang yoki keyinroq urinib ko'ring |
-| SSH `Permission denied` | Kalit ruxsati noto'g'ri | 3-qadamdagi `icacls` buyruqlarini bajaring |
+| Telegram `409 Conflict` | Bot 2 joyda ishlayapti | Kompyuterdagi `run_mentor.py` ni to'xtating |
+| `docker: permission denied` | `usermod` dan keyin qayta kirmagansiz | SSH'dan chiqib qayta kiring |
+| `bot` konteyner qayta-qayta o'chadi | `.env` to'liq emas / DB ulanmadi | `docker compose logs bot` ga qarang |
+| DB `statement cache` xatosi | Pooler port 6543 | `DATABASE_URL` to'g'ri pooler manzili ekanini tekshiring |
+| ARM "Out of capacity" | Tekin shakl band | Boshqa AD tanlang yoki keyin urinib ko'ring |
+| SSH `Permission denied` | Kalit ruxsati | 3-qadamdagi `icacls` buyruqlarini bajaring |
 
 ---
 
-## 🔐 Kichik xavfsizlik tavsiyalari (ixtiyoriy)
-- Serverda firewall: `sudo ufw allow OpenSSH && sudo ufw enable`
-  (polling uchun boshqa port ochish shart emas).
-- `.env` faylini hech kim bilan ulashmang, GitHub'ga PUSH QILMANG
-  (`.gitignore` da allaqachon bor).
-- Vaqti-vaqti bilan `sudo apt update && sudo apt upgrade -y`.
+## 🔐 Xavfsizlik (ixtiyoriy)
+- Firewall: `sudo ufw allow OpenSSH && sudo ufw enable` (polling uchun boshqa port shart emas).
+- `.env` ni hech kimga bermang, GitHub'ga push QILMANG (`.gitignore` da bor).
+- Vaqti-vaqti: `sudo apt update && sudo apt upgrade -y` va `docker compose pull` (redis yangilanishi uchun).

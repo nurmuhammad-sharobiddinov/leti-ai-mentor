@@ -1,0 +1,33 @@
+# LETI EDU Matematika Mentor — bot + Redis (24/7).
+# Postgres ALOHIDA emas — baza Supabase'da (DATABASE_URL .env da).
+#
+# Ishga tushirish:  docker compose up -d --build
+# Loglar:           docker compose logs -f bot
+# To'xtatish:       docker compose down
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Redis konteyneriga ulanadi (bu .env dagi bo'sh REDIS_URL ni qoplaydi)
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis-data:
